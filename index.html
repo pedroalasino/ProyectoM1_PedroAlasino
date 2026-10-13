@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generador de paletas de colores aleatorias para propuestas de branding de Colorfly Studio.">
+    <title>Generador de Paletas | Colorfly Studio</title>
+
+    <!-- Hoja de estilos externa: nada de estilos inline ni bloques <style> -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- defer: el script se descarga en paralelo y se ejecuta cuando el HTML ya está parseado -->
+    <script src="script.js" defer></script>
+</head>
+<body>
+
+    <header class="site-header">
+        <h1 class="site-header__title">Generador de Paletas</h1>
+        <p class="site-header__subtitle">Colorfly Studio · Paletas aleatorias para propuestas de branding</p>
+    </header>
+
+    <main class="main-content">
+
+        <!-- Controles de la aplicación -->
+        <section class="controls" aria-labelledby="controls-title">
+            <h2 id="controls-title" class="controls__title">Configurá tu paleta</h2>
+
+            <div class="controls__group">
+                <label for="palette-size" class="controls__label">Cantidad de colores</label>
+                <select id="palette-size" name="palette-size" class="controls__select">
+                    <option value="6" selected>6 colores</option>
+                    <option value="8">8 colores</option>
+                    <option value="9">9 colores</option>
+                </select>
+            </div>
+
+            <div class="controls__group">
+                <label for="color-format" class="controls__label">Formato del código</label>
+                <select id="color-format" name="color-format" class="controls__select">
+                    <option value="hex" selected>HEX</option>
+                    <option value="hsl">HSL</option>
+                    <option value="rgba">RGBA</option>
+                </select>
+            </div>
+
+            <button type="button" id="generate-btn" class="btn btn--primary">
+                Generar paleta
+            </button>
+        </section>
+
+        <!-- Paleta generada: JavaScript inserta aquí las tarjetas de color -->
+        <section class="palette" aria-labelledby="palette-title">
+            <h2 id="palette-title" class="palette__title">Tu paleta</h2>
+            <p class="palette__hint">Hacé clic en un color para copiar su código.</p>
+
+            <ul id="palette-grid" class="palette__grid">
+                <!-- Las tarjetas (<li class="color-card">) se generan dinámicamente desde script.js -->
+            </ul>
+        </section>
+
+    </main>
+
+    <footer class="site-footer">
+        <p>Proyecto Integrador M1 · Desarrollado para Colorfly Studio</p>
+    </footer>
+
+    <!-- Microfeedback: role="status" + aria-live hace que los lectores de pantalla anuncien el mensaje -->
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+</body>
+</html>
