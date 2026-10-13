@@ -20,6 +20,9 @@
     --color-gray-600: #52606d;       /* texto secundario: 6:1 sobre gray-100 */
     --color-gray-900: #1f2933;       /* texto principal: 14:1 sobre gray-100 */
 
+    /* Color de estado */
+    --color-danger: #b91c1c;         /* acciones destructivas: 6.4:1 sobre blanco */
+
     /* Tipografía (fuentes del sistema: sin descargas externas) */
     --font-base: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
@@ -182,14 +185,29 @@ body {
     transition: background-color var(--transition-fast), transform var(--transition-fast);
 }
 
+.controls__actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-left: auto;           /* empuja los botones al extremo derecho de la fila */
+}
+
 .btn--primary {
-    margin-left: auto;           /* empuja el botón al extremo derecho de la fila */
     color: var(--color-white);
     background-color: var(--color-primary);
 }
 
 .btn--primary:hover {
     background-color: var(--color-primary-hover);
+}
+
+.btn--secondary {
+    color: var(--color-primary);
+    background-color: var(--color-white);
+    box-shadow: inset 0 0 0 2px var(--color-primary);   /* borde que no suma tamaño */
+}
+
+.btn--secondary:hover {
+    background-color: var(--color-gray-100);
 }
 
 .btn:active {
@@ -305,7 +323,75 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   9. Toast de microfeedback
+   9. Paletas guardadas
+   -------------------------------------------------------------------------- */
+.saved__title {
+    font-size: 1.25rem;
+}
+
+.saved__empty {
+    margin-top: var(--space-xs);
+    color: var(--color-gray-600);
+}
+
+.saved__list {
+    list-style: none;
+    margin-top: var(--space-md);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: var(--space-md);
+}
+
+.saved-palette {
+    display: flex;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    background-color: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    animation: card-appear var(--transition-base) both;
+}
+
+/* Botón que carga la paleta: sus franjas de color se reparten el ancho con flex: 1 */
+.saved-palette__load {
+    flex: 1;
+    display: flex;
+    height: 3rem;
+    overflow: hidden;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+}
+
+.saved-palette__load:hover {
+    transform: scale(1.02);
+}
+
+.saved-palette__swatch {
+    flex: 1;
+}
+
+.saved-palette__delete {
+    flex-shrink: 0;
+    width: 2.5rem;
+    font: inherit;
+    font-size: 1.125rem;
+    color: var(--color-gray-600);
+    background-color: transparent;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.saved-palette__delete:hover {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+/* --------------------------------------------------------------------------
+   10. Toast de microfeedback
    Oculto por defecto; JavaScript agrega .toast--visible para mostrarlo.
    -------------------------------------------------------------------------- */
 .toast {
@@ -329,7 +415,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   10. Animaciones
+   11. Animaciones
    -------------------------------------------------------------------------- */
 @keyframes card-appear {
     from {
@@ -353,7 +439,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   11. Ajuste para pantallas angostas
+   12. Ajuste para pantallas angostas
    -------------------------------------------------------------------------- */
 @media (max-width: 40rem) {
     .controls {
@@ -361,7 +447,11 @@ body {
         align-items: stretch;
     }
 
-    .btn--primary {
+    .controls__actions {
         margin-left: 0;
+    }
+
+    .controls__actions .btn {
+        flex: 1;                 /* en pantallas chicas los botones ocupan todo el ancho */
     }
 }

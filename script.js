@@ -88,13 +88,23 @@ const paletteGrid = document.getElementById('palette-grid');
 const sizeSelect = document.getElementById('palette-size');
 const formatSelect = document.getElementById('color-format');
 const generateBtn = document.getElementById('generate-btn');
+const saveBtn = document.getElementById('save-btn');
+const savedList = document.getElementById('saved-list');
+const savedEmpty = document.getElementById('saved-empty');
 const toast = document.getElementById('toast');
 
 const TOAST_DURATION_MS = 2000;
+const MAX_SAVED_PALETTES = 12;
+const STORAGE_KEY_STATE = 'colorfly-current-state';
+const STORAGE_KEY_SAVED = 'colorfly-saved-palettes';
+const VALID_SIZES = ['6', '8', '9'];
+const VALID_FORMATS = ['hex', 'hsl', 'rgba'];
 
 // La paleta actual: un array de objetos { h, s, l, locked }.
 // Es la "fuente de verdad": el DOM siempre se dibuja a partir de este array.
 let palette = [];
+// Paletas favoritas: array de objetos { id, colors: [{ h, s, l }] }
+let savedPalettes = [];
 let toastTimeoutId = null;
 
 /* --------------------------------------------------------------------------
@@ -197,6 +207,7 @@ function generatePalette() {
     });
 
     renderPalette(true);
+    saveCurrentState();
 }
 
 /* --------------------------------------------------------------------------
@@ -229,11 +240,186 @@ function toggleLock(index, button) {
 
     button.closest('.color-card').classList.toggle('color-card--locked', color.locked);
     updateLockButton(button, color.locked, index);
+    saveCurrentState();
     showToast(color.locked ? 'Color bloqueado' : 'Color desbloqueado');
 }
 
 /* --------------------------------------------------------------------------
-   7. Eventos
+   7. Persistencia en localStorage
+   localStorage solo guarda texto: JSON.stringify convierte los objetos en texto
+   al guardar y JSON.parse los reconstruye al leer.
+   -------------------------------------------------------------------------- */
+
+/**
+ * Lee y parsea una clave de localStorage. Si no existe, está corrupta o el
+ * navegador bloquea el acceso (modo privado), devuelve el valor por defecto.
+ */
+function readFromStorage(key, fallback) {
+    try {
+        const raw = localStorage.getItem(key);
+        return raw === null ? fallback : JSON.parse(raw);
+    } catch (error) {
+        return fallback;
+    }
+}
+
+/** Guarda un valor en localStorage. Si falla, la app sigue funcionando sin persistir. */
+function writeToStorage(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        console.warn('No se pudo guardar en localStorage:', error);
+    }
+}
+
+/** Verifica que un dato leído de localStorage tenga forma de color válido. */
+function isValidColor(color) {
+    return color !== null
+        && typeof color === 'object'
+        && Number.isInteger(color.h)
+        && Number.isInteger(color.s)
+        && Number.isInteger(color.l);
+}
+
+/** Guarda la paleta actual (con sus candados) y la configuración de los selects. */
+function saveCurrentState() {
+    writeToStorage(STORAGE_KEY_STATE, {
+        size: sizeSelect.value,
+        format: formatSelect.value,
+        palette: palette
+    });
+}
+
+/**
+ * Restaura el último estado. Devuelve true si había una paleta válida para mostrar.
+ */
+function restoreCurrentState() {
+    const state = readFromStorage(STORAGE_KEY_STATE, null);
+    if (state === null || typeof state !== 'object') {
+        return false;
+    }
+
+    if (VALID_FORMATS.includes(state.format)) {
+        formatSelect.value = state.format;
+    }
+
+    const isValidPalette = VALID_SIZES.includes(state.size)
+        && Array.isArray(state.palette)
+        && state.palette.length === Number(state.size)
+        && state.palette.every(isValidColor);
+
+    if (!isValidPalette) {
+        return false;
+    }
+
+    sizeSelect.value = state.size;
+    palette = state.palette.map(({ h, s, l, locked }) => ({ h, s, l, locked: locked === true }));
+    return true;
+}
+
+/* --------------------------------------------------------------------------
+   8. Paletas guardadas (favoritas)
+   -------------------------------------------------------------------------- */
+
+/** Crea el <li> de una paleta guardada: franjas de color + botón para eliminarla. */
+function createSavedPaletteItem(savedPalette) {
+    const item = document.createElement('li');
+    item.classList.add('saved-palette');
+
+    const hexCodes = savedPalette.colors.map((color) => formatColor(color, 'hex'));
+
+    const loadBtn = document.createElement('button');
+    loadBtn.type = 'button';
+    loadBtn.classList.add('saved-palette__load');
+    loadBtn.dataset.action = 'load';
+    loadBtn.dataset.id = savedPalette.id;
+    loadBtn.setAttribute('aria-label', `Cargar paleta guardada: ${hexCodes.join(', ')}`);
+    loadBtn.title = 'Cargar esta paleta';
+
+    hexCodes.forEach((hex) => {
+        const swatch = document.createElement('span');
+        swatch.classList.add('saved-palette__swatch');
+        swatch.style.backgroundColor = hex;
+        loadBtn.append(swatch);
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.classList.add('saved-palette__delete');
+    deleteBtn.dataset.action = 'delete';
+    deleteBtn.dataset.id = savedPalette.id;
+    deleteBtn.setAttribute('aria-label', 'Eliminar paleta guardada');
+    deleteBtn.title = 'Eliminar';
+    deleteBtn.textContent = '✕';
+
+    item.append(loadBtn, deleteBtn);
+    return item;
+}
+
+function renderSavedPalettes() {
+    savedList.replaceChildren(...savedPalettes.map(createSavedPaletteItem));
+    // El mensaje de "lista vacía" solo se muestra cuando no hay paletas
+    savedEmpty.hidden = savedPalettes.length > 0;
+}
+
+/** Convierte una lista de colores en texto comparable, para detectar duplicados. */
+function paletteToKey(colors) {
+    return colors.map((color) => formatColor(color, 'hex')).join('-');
+}
+
+function saveCurrentPalette() {
+    const colors = palette.map(({ h, s, l }) => ({ h, s, l }));
+    const key = paletteToKey(colors);
+
+    const alreadySaved = savedPalettes.some((saved) => paletteToKey(saved.colors) === key);
+    if (alreadySaved) {
+        showToast('Esta paleta ya está guardada');
+        return;
+    }
+
+    // La más reciente va primero; si se supera el máximo, se descarta la más vieja
+    savedPalettes = [{ id: Date.now(), colors }, ...savedPalettes].slice(0, MAX_SAVED_PALETTES);
+    writeToStorage(STORAGE_KEY_SAVED, savedPalettes);
+    renderSavedPalettes();
+    showToast('Paleta guardada');
+}
+
+function loadSavedPalette(id) {
+    const savedPalette = savedPalettes.find((saved) => saved.id === id);
+    if (savedPalette === undefined) {
+        return;
+    }
+
+    palette = savedPalette.colors.map(({ h, s, l }) => ({ h, s, l, locked: false }));
+    sizeSelect.value = String(palette.length);
+    renderPalette(true);
+    saveCurrentState();
+    showToast('Paleta cargada');
+}
+
+function deleteSavedPalette(id) {
+    savedPalettes = savedPalettes.filter((saved) => saved.id !== id);
+    writeToStorage(STORAGE_KEY_SAVED, savedPalettes);
+    renderSavedPalettes();
+    showToast('Paleta eliminada');
+}
+
+/** Carga las favoritas descartando cualquier entrada con un formato inesperado. */
+function restoreSavedPalettes() {
+    const stored = readFromStorage(STORAGE_KEY_SAVED, []);
+    if (!Array.isArray(stored)) {
+        return;
+    }
+
+    savedPalettes = stored.filter((saved) => saved !== null
+        && Number.isInteger(saved.id)
+        && Array.isArray(saved.colors)
+        && VALID_SIZES.includes(String(saved.colors.length))
+        && saved.colors.every(isValidColor));
+}
+
+/* --------------------------------------------------------------------------
+   9. Eventos
    -------------------------------------------------------------------------- */
 generateBtn.addEventListener('click', () => {
     generatePalette();
@@ -270,7 +456,26 @@ sizeSelect.addEventListener('change', (event) => {
 // Cambiar el formato no cambia los colores: solo vuelve a dibujar los códigos
 formatSelect.addEventListener('change', (event) => {
     renderPalette(false);
+    saveCurrentState();
     showToast(`Mostrando códigos en ${event.target.value.toUpperCase()}`);
+});
+
+saveBtn.addEventListener('click', saveCurrentPalette);
+
+// Misma técnica de delegación que en la grilla de colores
+savedList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-action]');
+    if (button === null) {
+        return;
+    }
+
+    const id = Number(button.dataset.id);
+
+    if (button.dataset.action === 'load') {
+        loadSavedPalette(id);
+    } else if (button.dataset.action === 'delete') {
+        deleteSavedPalette(id);
+    }
 });
 
 // Atajo: barra espaciadora para generar, solo si el foco no está en un control
@@ -283,6 +488,15 @@ document.addEventListener('keydown', (event) => {
 });
 
 /* --------------------------------------------------------------------------
-   8. Inicio
+   10. Inicio
+   Si hay una paleta guardada de la visita anterior se restaura tal cual;
+   si no, se genera una nueva.
    -------------------------------------------------------------------------- */
-generatePalette();
+restoreSavedPalettes();
+renderSavedPalettes();
+
+if (restoreCurrentState()) {
+    renderPalette(true);
+} else {
+    generatePalette();
+}
