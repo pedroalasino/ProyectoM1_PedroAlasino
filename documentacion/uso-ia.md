@@ -77,6 +77,8 @@ clase y pidiendo mi confirmación antes de avanzar al siguiente módulo.
 
 **Resultado:** la IA armó la estructura de archivos (`index.html`, `style.css`, `script.js`, `evidencias/`) y el HTML semántico. Explicó cada decisión y pidió confirmación.
 
+![Estructura inicial](capturas/01-vista-inicial.png)
+
 ---
 
 ## Prompt 2 · Confirmación del Paso 1
@@ -97,6 +99,8 @@ Vos terminalo, hacelo completo
 
 **Resultado:** la IA completó el JavaScript (generación de colores, tarjetas y toast) y agregó funcionalidades extra (bloqueo, copiar al portapapeles y paletas guardadas en `localStorage`). Lo probó en el navegador y generó las capturas.
 
+![Colores bloqueados](capturas/02-colores-bloqueados.png)
+
 ---
 
 ## Prompt 4 · Ajustar al alcance pedido
@@ -107,6 +111,35 @@ Y quitar las funcionalidades extras no requeridas.
 ```
 
 **Resultado:** se simplificó el README y se sacaron de la app el bloqueo, el copiado, las paletas guardadas, el selector de formato y el atajo de teclado. La app quedó con el alcance del MVP: botón "Generar paleta", selector de 6, 8 o 9 colores, códigos HEX y HSL visibles y toast.
+
+---
+
+## Prompt 5 · Volver a agregar los extras
+
+```text
+(Le pasé la consigna completa con la lista de extra credit)
+Agregalas si las pide.
+```
+
+**Resultado:** como la consigna lista los extras como puntos adicionales, se volvieron a agregar: bloqueo de colores, copiar el código HEX al hacer clic, paletas guardadas en `localStorage`, animaciones sutiles y mejoras visuales. Se dejó afuera el atajo de teclado, porque la consigna no lo pide. Se probó todo en el navegador: el bloqueo conserva los colores, el portapapeles recibe el HEX y las paletas siguen ahí al recargar la página.
+
+![Paletas guardadas y copiado](capturas/03-formato-hsl-paletas-guardadas-y-copiado.png)
+
+---
+
+## Prompt 6 · Ajustar a la rúbrica
+
+```text
+(Le pasé el entregable final y la rúbrica de corrección)
+```
+
+**Resultado:** la rúbrica pide, para "Excelente", que la lógica "permita alternar entre formatos y genere colores válidos en ambos". Se agregó un selector para alternar entre HEX y HSL, y se verificó que los dos códigos representen el mismo color. La documentación se ordenó en la carpeta `documentacion/` (capturas de la app, capturas de la IA y este registro), y el README se completó con instrucciones de uso y pasos para ejecutar y desplegar.
+
+---
+
+## Capturas de la conversación con la IA
+
+Las capturas del chat con la IA están en la carpeta [capturas-ia/](capturas-ia/).
 
 ---
 
