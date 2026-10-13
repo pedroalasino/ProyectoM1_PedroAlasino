@@ -71,11 +71,17 @@ function toHsl(color) {
     return `hsl(${color.h}, ${color.s}%, ${color.l}%)`;
 }
 
+/** Devuelve el código del color en el formato elegido en el <select> (HEX o HSL). */
+function formatColor(color) {
+    return formatSelect.value === 'hsl' ? toHsl(color) : toHex(color);
+}
+
 /* --------------------------------------------------------------------------
    3. Referencias al DOM y estado de la aplicación
    -------------------------------------------------------------------------- */
 const paletteGrid = document.getElementById('palette-grid');
 const sizeSelect = document.getElementById('palette-size');
+const formatSelect = document.getElementById('color-format');
 const generateBtn = document.getElementById('generate-btn');
 const saveBtn = document.getElementById('save-btn');
 const savedList = document.getElementById('saved-list');
@@ -87,6 +93,7 @@ const MAX_SAVED_PALETTES = 12;
 const STORAGE_KEY_STATE = 'colorfly-current-state';
 const STORAGE_KEY_SAVED = 'colorfly-saved-palettes';
 const VALID_SIZES = ['6', '8', '9'];
+const VALID_FORMATS = ['hex', 'hsl'];
 
 // La paleta actual: un array de objetos { h, s, l, locked }.
 // Es la "fuente de verdad": el DOM siempre se dibuja a partir de este array.
@@ -123,7 +130,7 @@ function showToast(message) {
  * (y no innerHTML) para no interpretar nunca texto como HTML.
  */
 function createColorCard(color, index, animate) {
-    const hex = toHex(color);
+    const code = formatColor(color);
 
     const card = document.createElement('li');
     card.classList.add('color-card');
@@ -138,25 +145,16 @@ function createColorCard(color, index, animate) {
     swatch.classList.add('color-card__swatch');
     swatch.dataset.action = 'copy';
     swatch.dataset.index = index;
-    swatch.setAttribute('aria-label', `Copiar color ${hex}`);
+    swatch.setAttribute('aria-label', `Copiar color ${code}`);
     // Único estilo aplicado desde JS: el color es dinámico y no puede definirse en style.css
-    swatch.style.backgroundColor = hex;
+    swatch.style.backgroundColor = toHex(color);
 
     const info = document.createElement('div');
     info.classList.add('color-card__info');
 
-    const codes = document.createElement('div');
-    codes.classList.add('color-card__codes');
-
-    const hexText = document.createElement('code');
-    hexText.classList.add('color-card__code');
-    hexText.textContent = hex;
-
-    const hslText = document.createElement('code');
-    hslText.classList.add('color-card__code', 'color-card__code--secondary');
-    hslText.textContent = toHsl(color);
-
-    codes.append(hexText, hslText);
+    const codeText = document.createElement('code');
+    codeText.classList.add('color-card__code');
+    codeText.textContent = code;
 
     const lockBtn = document.createElement('button');
     lockBtn.type = 'button';
@@ -165,7 +163,7 @@ function createColorCard(color, index, animate) {
     lockBtn.dataset.index = index;
     updateLockButton(lockBtn, color.locked, index);
 
-    info.append(codes, lockBtn);
+    info.append(codeText, lockBtn);
     card.append(swatch, info);
     return card;
 }
@@ -212,12 +210,12 @@ function generatePalette() {
    -------------------------------------------------------------------------- */
 
 /**
- * Copia el código HEX del color al portapapeles.
+ * Copia el código del color al portapapeles en el formato elegido (HEX por defecto).
  * navigator.clipboard devuelve una Promesa: con async/await esperamos
  * el resultado y, si falla (permisos, navegador viejo), avisamos en el toast.
  */
 async function copyColor(index) {
-    const code = toHex(palette[index]);
+    const code = formatColor(palette[index]);
 
     try {
         await navigator.clipboard.writeText(code);
@@ -278,10 +276,11 @@ function isValidColor(color) {
         && Number.isInteger(color.l);
 }
 
-/** Guarda la paleta actual (con sus candados) y el tamaño elegido. */
+/** Guarda la paleta actual (con sus candados), el tamaño y el formato elegidos. */
 function saveCurrentState() {
     writeToStorage(STORAGE_KEY_STATE, {
         size: sizeSelect.value,
+        format: formatSelect.value,
         palette: palette
     });
 }
@@ -293,6 +292,10 @@ function restoreCurrentState() {
     const state = readFromStorage(STORAGE_KEY_STATE, null);
     if (state === null || typeof state !== 'object') {
         return false;
+    }
+
+    if (VALID_FORMATS.includes(state.format)) {
+        formatSelect.value = state.format;
     }
 
     const isValidPalette = VALID_SIZES.includes(state.size)
@@ -438,6 +441,13 @@ paletteGrid.addEventListener('click', (event) => {
     } else if (button.dataset.action === 'lock') {
         toggleLock(index, button);
     }
+});
+
+// Cambiar el formato no cambia los colores: solo vuelve a dibujar los códigos
+formatSelect.addEventListener('change', (event) => {
+    renderPalette(false);
+    saveCurrentState();
+    showToast(`Mostrando códigos en ${event.target.value.toUpperCase()}`);
 });
 
 sizeSelect.addEventListener('change', (event) => {

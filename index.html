@@ -34,6 +34,14 @@
                 </select>
             </div>
 
+            <div class="controls__group">
+                <label for="color-format" class="controls__label">Formato del código</label>
+                <select id="color-format" name="color-format" class="controls__select">
+                    <option value="hex" selected>HEX</option>
+                    <option value="hsl">HSL</option>
+                </select>
+            </div>
+
             <div class="controls__actions">
                 <button type="button" id="save-btn" class="btn btn--secondary">
                     Guardar paleta
@@ -48,7 +56,7 @@
         <section class="palette" aria-labelledby="palette-title">
             <h2 id="palette-title" class="palette__title">Tu paleta</h2>
             <p class="palette__hint">
-                Hacé clic en un color para copiar su código HEX y usá el candado para conservarlo al regenerar.
+                Hacé clic en un color para copiar su código y usá el candado para conservarlo al regenerar.
             </p>
 
             <ul id="palette-grid" class="palette__grid">
