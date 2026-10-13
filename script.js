@@ -6,7 +6,7 @@
 /* --------------------------------------------------------------------------
    1. Generación de colores aleatorios
    Cada color se guarda en HSL (h, s, l) porque permite controlar el tono,
-   la saturación y la luminosidad por separado; HEX se calcula a partir de él.
+   la saturación y la luminosidad por separado; HEX y RGBA se calculan a partir de él.
    -------------------------------------------------------------------------- */
 
 /**
@@ -22,13 +22,15 @@ function getRandomInt(min, max) {
 /**
  * Crea un color aleatorio en HSL.
  * La saturación y la luminosidad están acotadas a propósito: así se evitan
- * grises apagados y colores casi blancos o casi negros.
+ * grises apagados y colores casi blancos o casi negros, que rara vez sirven
+ * en una propuesta de branding.
  */
 function generateRandomColor() {
     return {
         h: getRandomInt(0, 359),   // tono: posición en el círculo cromático (grados)
         s: getRandomInt(45, 90),   // saturación (%)
-        l: getRandomInt(30, 75)    // luminosidad (%)
+        l: getRandomInt(30, 75),   // luminosidad (%)
+        locked: false
     };
 }
 
@@ -70,15 +72,27 @@ function toHsl(color) {
 }
 
 /* --------------------------------------------------------------------------
-   3. Referencias al DOM
+   3. Referencias al DOM y estado de la aplicación
    -------------------------------------------------------------------------- */
 const paletteGrid = document.getElementById('palette-grid');
 const sizeSelect = document.getElementById('palette-size');
 const generateBtn = document.getElementById('generate-btn');
+const saveBtn = document.getElementById('save-btn');
+const savedList = document.getElementById('saved-list');
+const savedEmpty = document.getElementById('saved-empty');
 const toast = document.getElementById('toast');
 
 const TOAST_DURATION_MS = 2000;
+const MAX_SAVED_PALETTES = 12;
+const STORAGE_KEY_STATE = 'colorfly-current-state';
+const STORAGE_KEY_SAVED = 'colorfly-saved-palettes';
+const VALID_SIZES = ['6', '8', '9'];
 
+// La paleta actual: un array de objetos { h, s, l, locked }.
+// Es la "fuente de verdad": el DOM siempre se dibuja a partir de este array.
+let palette = [];
+// Paletas favoritas: array de objetos { id, colors: [{ h, s, l }] }
+let savedPalettes = [];
 let toastTimeoutId = null;
 
 /* --------------------------------------------------------------------------
@@ -108,19 +122,31 @@ function showToast(message) {
  * Crea el <li> de una tarjeta de color. Se usa createElement + textContent
  * (y no innerHTML) para no interpretar nunca texto como HTML.
  */
-function createColorCard(color) {
+function createColorCard(color, index, animate) {
     const hex = toHex(color);
 
     const card = document.createElement('li');
     card.classList.add('color-card');
+    card.classList.toggle('color-card--locked', color.locked);
+    // Los colores bloqueados no cambian, así que no tiene sentido volver a animarlos
+    card.classList.toggle('color-card--entering', animate && !color.locked);
 
-    const swatch = document.createElement('div');
+    // La muestra es un <button>: se puede activar con mouse, Enter o Espacio.
+    // data-action y data-index le dicen al listener delegado qué hacer y sobre qué color.
+    const swatch = document.createElement('button');
+    swatch.type = 'button';
     swatch.classList.add('color-card__swatch');
+    swatch.dataset.action = 'copy';
+    swatch.dataset.index = index;
+    swatch.setAttribute('aria-label', `Copiar color ${hex}`);
     // Único estilo aplicado desde JS: el color es dinámico y no puede definirse en style.css
     swatch.style.backgroundColor = hex;
 
     const info = document.createElement('div');
     info.classList.add('color-card__info');
+
+    const codes = document.createElement('div');
+    codes.classList.add('color-card__codes');
 
     const hexText = document.createElement('code');
     hexText.classList.add('color-card__code');
@@ -130,32 +156,288 @@ function createColorCard(color) {
     hslText.classList.add('color-card__code', 'color-card__code--secondary');
     hslText.textContent = toHsl(color);
 
-    info.append(hexText, hslText);
+    codes.append(hexText, hslText);
+
+    const lockBtn = document.createElement('button');
+    lockBtn.type = 'button';
+    lockBtn.classList.add('color-card__lock');
+    lockBtn.dataset.action = 'lock';
+    lockBtn.dataset.index = index;
+    updateLockButton(lockBtn, color.locked, index);
+
+    info.append(codes, lockBtn);
     card.append(swatch, info);
     return card;
 }
 
 /**
- * Genera una paleta nueva del tamaño elegido en el <select> y la dibuja.
+ * Sincroniza el botón de candado con el estado del color.
+ * aria-pressed indica a los lectores de pantalla que es un botón de dos estados.
  */
-function generatePalette() {
-    const size = Number(sizeSelect.value);
-    const cards = [];
+function updateLockButton(button, locked, index) {
+    button.textContent = locked ? '🔒' : '🔓';
+    button.setAttribute('aria-pressed', String(locked));
+    button.setAttribute('aria-label', `${locked ? 'Desbloquear' : 'Bloquear'} color ${index + 1}`);
+    button.title = locked ? 'Desbloquear color' : 'Bloquear color';
+}
 
-    for (let i = 0; i < size; i++) {
-        cards.push(createColorCard(generateRandomColor()));
-    }
-
-    // replaceChildren borra las tarjetas anteriores y agrega las nuevas en un solo paso
+/**
+ * Dibuja toda la paleta. Con animate = true las tarjetas entran con animación.
+ */
+function renderPalette(animate) {
+    const cards = palette.map((color, index) => createColorCard(color, index, animate));
     paletteGrid.replaceChildren(...cards);
 }
 
+/**
+ * Genera una paleta nueva del tamaño elegido en el <select>.
+ * Recorre cada posición: si ya hay un color bloqueado ahí, se conserva;
+ * si no, se reemplaza por uno aleatorio. Esto también resuelve el cambio de
+ * tamaño: al pasar de 9 a 6 se descartan las últimas posiciones.
+ */
+function generatePalette() {
+    const size = Number(sizeSelect.value);
+
+    palette = Array.from({ length: size }, (_, index) => {
+        const current = palette[index];
+        return current && current.locked ? current : generateRandomColor();
+    });
+
+    renderPalette(true);
+    saveCurrentState();
+}
+
 /* --------------------------------------------------------------------------
-   6. Eventos
+   6. Acciones sobre las tarjetas: copiar y bloquear
+   -------------------------------------------------------------------------- */
+
+/**
+ * Copia el código HEX del color al portapapeles.
+ * navigator.clipboard devuelve una Promesa: con async/await esperamos
+ * el resultado y, si falla (permisos, navegador viejo), avisamos en el toast.
+ */
+async function copyColor(index) {
+    const code = toHex(palette[index]);
+
+    try {
+        await navigator.clipboard.writeText(code);
+        showToast(`Copiado: ${code}`);
+    } catch (error) {
+        showToast('No se pudo copiar. Probá de nuevo.');
+    }
+}
+
+/**
+ * Bloquea o desbloquea un color. Actualiza solo esa tarjeta (en vez de
+ * redibujar todo) para no perder el foco del teclado ni repetir animaciones.
+ */
+function toggleLock(index, button) {
+    const color = palette[index];
+    color.locked = !color.locked;
+
+    button.closest('.color-card').classList.toggle('color-card--locked', color.locked);
+    updateLockButton(button, color.locked, index);
+    saveCurrentState();
+    showToast(color.locked ? 'Color bloqueado' : 'Color desbloqueado');
+}
+
+/* --------------------------------------------------------------------------
+   7. Persistencia en localStorage
+   localStorage solo guarda texto: JSON.stringify convierte los objetos en texto
+   al guardar y JSON.parse los reconstruye al leer.
+   -------------------------------------------------------------------------- */
+
+/**
+ * Lee y parsea una clave de localStorage. Si no existe, está corrupta o el
+ * navegador bloquea el acceso (modo privado), devuelve el valor por defecto.
+ */
+function readFromStorage(key, fallback) {
+    try {
+        const raw = localStorage.getItem(key);
+        return raw === null ? fallback : JSON.parse(raw);
+    } catch (error) {
+        return fallback;
+    }
+}
+
+/** Guarda un valor en localStorage. Si falla, la app sigue funcionando sin persistir. */
+function writeToStorage(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        console.warn('No se pudo guardar en localStorage:', error);
+    }
+}
+
+/** Verifica que un dato leído de localStorage tenga forma de color válido. */
+function isValidColor(color) {
+    return color !== null
+        && typeof color === 'object'
+        && Number.isInteger(color.h)
+        && Number.isInteger(color.s)
+        && Number.isInteger(color.l);
+}
+
+/** Guarda la paleta actual (con sus candados) y el tamaño elegido. */
+function saveCurrentState() {
+    writeToStorage(STORAGE_KEY_STATE, {
+        size: sizeSelect.value,
+        palette: palette
+    });
+}
+
+/**
+ * Restaura el último estado. Devuelve true si había una paleta válida para mostrar.
+ */
+function restoreCurrentState() {
+    const state = readFromStorage(STORAGE_KEY_STATE, null);
+    if (state === null || typeof state !== 'object') {
+        return false;
+    }
+
+    const isValidPalette = VALID_SIZES.includes(state.size)
+        && Array.isArray(state.palette)
+        && state.palette.length === Number(state.size)
+        && state.palette.every(isValidColor);
+
+    if (!isValidPalette) {
+        return false;
+    }
+
+    sizeSelect.value = state.size;
+    palette = state.palette.map(({ h, s, l, locked }) => ({ h, s, l, locked: locked === true }));
+    return true;
+}
+
+/* --------------------------------------------------------------------------
+   8. Paletas guardadas (favoritas)
+   -------------------------------------------------------------------------- */
+
+/** Crea el <li> de una paleta guardada: franjas de color + botón para eliminarla. */
+function createSavedPaletteItem(savedPalette) {
+    const item = document.createElement('li');
+    item.classList.add('saved-palette');
+
+    const hexCodes = savedPalette.colors.map((color) => toHex(color));
+
+    const loadBtn = document.createElement('button');
+    loadBtn.type = 'button';
+    loadBtn.classList.add('saved-palette__load');
+    loadBtn.dataset.action = 'load';
+    loadBtn.dataset.id = savedPalette.id;
+    loadBtn.setAttribute('aria-label', `Cargar paleta guardada: ${hexCodes.join(', ')}`);
+    loadBtn.title = 'Cargar esta paleta';
+
+    hexCodes.forEach((hex) => {
+        const swatch = document.createElement('span');
+        swatch.classList.add('saved-palette__swatch');
+        swatch.style.backgroundColor = hex;
+        loadBtn.append(swatch);
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.classList.add('saved-palette__delete');
+    deleteBtn.dataset.action = 'delete';
+    deleteBtn.dataset.id = savedPalette.id;
+    deleteBtn.setAttribute('aria-label', 'Eliminar paleta guardada');
+    deleteBtn.title = 'Eliminar';
+    deleteBtn.textContent = '✕';
+
+    item.append(loadBtn, deleteBtn);
+    return item;
+}
+
+function renderSavedPalettes() {
+    savedList.replaceChildren(...savedPalettes.map(createSavedPaletteItem));
+    // El mensaje de "lista vacía" solo se muestra cuando no hay paletas
+    savedEmpty.hidden = savedPalettes.length > 0;
+}
+
+/** Convierte una lista de colores en texto comparable, para detectar duplicados. */
+function paletteToKey(colors) {
+    return colors.map((color) => toHex(color)).join('-');
+}
+
+function saveCurrentPalette() {
+    const colors = palette.map(({ h, s, l }) => ({ h, s, l }));
+    const key = paletteToKey(colors);
+
+    const alreadySaved = savedPalettes.some((saved) => paletteToKey(saved.colors) === key);
+    if (alreadySaved) {
+        showToast('Esta paleta ya está guardada');
+        return;
+    }
+
+    // La más reciente va primero; si se supera el máximo, se descarta la más vieja
+    savedPalettes = [{ id: Date.now(), colors }, ...savedPalettes].slice(0, MAX_SAVED_PALETTES);
+    writeToStorage(STORAGE_KEY_SAVED, savedPalettes);
+    renderSavedPalettes();
+    showToast('Paleta guardada');
+}
+
+function loadSavedPalette(id) {
+    const savedPalette = savedPalettes.find((saved) => saved.id === id);
+    if (savedPalette === undefined) {
+        return;
+    }
+
+    palette = savedPalette.colors.map(({ h, s, l }) => ({ h, s, l, locked: false }));
+    sizeSelect.value = String(palette.length);
+    renderPalette(true);
+    saveCurrentState();
+    showToast('Paleta cargada');
+}
+
+function deleteSavedPalette(id) {
+    savedPalettes = savedPalettes.filter((saved) => saved.id !== id);
+    writeToStorage(STORAGE_KEY_SAVED, savedPalettes);
+    renderSavedPalettes();
+    showToast('Paleta eliminada');
+}
+
+/** Carga las favoritas descartando cualquier entrada con un formato inesperado. */
+function restoreSavedPalettes() {
+    const stored = readFromStorage(STORAGE_KEY_SAVED, []);
+    if (!Array.isArray(stored)) {
+        return;
+    }
+
+    savedPalettes = stored.filter((saved) => saved !== null
+        && Number.isInteger(saved.id)
+        && Array.isArray(saved.colors)
+        && VALID_SIZES.includes(String(saved.colors.length))
+        && saved.colors.every(isValidColor));
+}
+
+/* --------------------------------------------------------------------------
+   9. Eventos
    -------------------------------------------------------------------------- */
 generateBtn.addEventListener('click', () => {
     generatePalette();
-    showToast('¡Nueva paleta generada!');
+
+    const lockedCount = palette.filter((color) => color.locked).length;
+    showToast(lockedCount === 0
+        ? '¡Nueva paleta generada!'
+        : `¡Nueva paleta generada! (${lockedCount} bloqueado${lockedCount === 1 ? '' : 's'})`);
+});
+
+// Delegación de eventos: un solo listener en la grilla atiende los clics de
+// todas las tarjetas, incluso las que se crean después. closest() sube desde
+// el elemento clickeado hasta encontrar el botón con data-action.
+paletteGrid.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-action]');
+    if (button === null) {
+        return;
+    }
+
+    const index = Number(button.dataset.index);
+
+    if (button.dataset.action === 'copy') {
+        copyColor(index);
+    } else if (button.dataset.action === 'lock') {
+        toggleLock(index, button);
+    }
 });
 
 sizeSelect.addEventListener('change', (event) => {
@@ -163,7 +445,34 @@ sizeSelect.addEventListener('change', (event) => {
     showToast(`Paleta de ${event.target.value} colores generada`);
 });
 
+saveBtn.addEventListener('click', saveCurrentPalette);
+
+// Misma técnica de delegación que en la grilla de colores
+savedList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-action]');
+    if (button === null) {
+        return;
+    }
+
+    const id = Number(button.dataset.id);
+
+    if (button.dataset.action === 'load') {
+        loadSavedPalette(id);
+    } else if (button.dataset.action === 'delete') {
+        deleteSavedPalette(id);
+    }
+});
+
 /* --------------------------------------------------------------------------
-   7. Inicio
+   10. Inicio
+   Si hay una paleta guardada de la visita anterior se restaura tal cual;
+   si no, se genera una nueva.
    -------------------------------------------------------------------------- */
-generatePalette();
+restoreSavedPalettes();
+renderSavedPalettes();
+
+if (restoreCurrentState()) {
+    renderPalette(true);
+} else {
+    generatePalette();
+}
