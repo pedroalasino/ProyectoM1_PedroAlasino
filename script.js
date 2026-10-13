@@ -129,12 +129,16 @@ function createColorCard(color, index, animate) {
 
     const card = document.createElement('li');
     card.classList.add('color-card');
-    card.classList.toggle('color-card--entering', animate);
+    card.classList.toggle('color-card--locked', color.locked);
+    // Los colores bloqueados no cambian, así que no tiene sentido volver a animarlos
+    card.classList.toggle('color-card--entering', animate && !color.locked);
 
-    // La muestra es un <button>: se puede activar con mouse, Enter o Espacio
+    // La muestra es un <button>: se puede activar con mouse, Enter o Espacio.
+    // data-action y data-index le dicen al listener delegado qué hacer y sobre qué color.
     const swatch = document.createElement('button');
     swatch.type = 'button';
     swatch.classList.add('color-card__swatch');
+    swatch.dataset.action = 'copy';
     swatch.dataset.index = index;
     swatch.setAttribute('aria-label', `Copiar color ${code}`);
     // Único estilo aplicado desde JS: el color es dinámico y no puede definirse en style.css
@@ -147,9 +151,27 @@ function createColorCard(color, index, animate) {
     codeText.classList.add('color-card__code');
     codeText.textContent = code;
 
-    info.append(codeText);
+    const lockBtn = document.createElement('button');
+    lockBtn.type = 'button';
+    lockBtn.classList.add('color-card__lock');
+    lockBtn.dataset.action = 'lock';
+    lockBtn.dataset.index = index;
+    updateLockButton(lockBtn, color.locked, index);
+
+    info.append(codeText, lockBtn);
     card.append(swatch, info);
     return card;
+}
+
+/**
+ * Sincroniza el botón de candado con el estado del color.
+ * aria-pressed indica a los lectores de pantalla que es un botón de dos estados.
+ */
+function updateLockButton(button, locked, index) {
+    button.textContent = locked ? '🔒' : '🔓';
+    button.setAttribute('aria-pressed', String(locked));
+    button.setAttribute('aria-label', `${locked ? 'Desbloquear' : 'Bloquear'} color ${index + 1}`);
+    button.title = locked ? 'Desbloquear color' : 'Bloquear color';
 }
 
 /**
@@ -162,19 +184,82 @@ function renderPalette(animate) {
 
 /**
  * Genera una paleta nueva del tamaño elegido en el <select>.
+ * Recorre cada posición: si ya hay un color bloqueado ahí, se conserva;
+ * si no, se reemplaza por uno aleatorio. Esto también resuelve el cambio de
+ * tamaño: al pasar de 9 a 6 se descartan las últimas posiciones.
  */
 function generatePalette() {
     const size = Number(sizeSelect.value);
-    palette = Array.from({ length: size }, () => generateRandomColor());
+
+    palette = Array.from({ length: size }, (_, index) => {
+        const current = palette[index];
+        return current && current.locked ? current : generateRandomColor();
+    });
+
     renderPalette(true);
 }
 
 /* --------------------------------------------------------------------------
-   6. Eventos
+   6. Acciones sobre las tarjetas: copiar y bloquear
+   -------------------------------------------------------------------------- */
+
+/**
+ * Copia el código del color en el formato que se está mostrando.
+ * navigator.clipboard devuelve una Promesa: con async/await esperamos
+ * el resultado y, si falla (permisos, navegador viejo), avisamos en el toast.
+ */
+async function copyColor(index) {
+    const code = formatColor(palette[index], formatSelect.value);
+
+    try {
+        await navigator.clipboard.writeText(code);
+        showToast(`Copiado: ${code}`);
+    } catch (error) {
+        showToast('No se pudo copiar. Probá de nuevo.');
+    }
+}
+
+/**
+ * Bloquea o desbloquea un color. Actualiza solo esa tarjeta (en vez de
+ * redibujar todo) para no perder el foco del teclado ni repetir animaciones.
+ */
+function toggleLock(index, button) {
+    const color = palette[index];
+    color.locked = !color.locked;
+
+    button.closest('.color-card').classList.toggle('color-card--locked', color.locked);
+    updateLockButton(button, color.locked, index);
+    showToast(color.locked ? 'Color bloqueado' : 'Color desbloqueado');
+}
+
+/* --------------------------------------------------------------------------
+   7. Eventos
    -------------------------------------------------------------------------- */
 generateBtn.addEventListener('click', () => {
     generatePalette();
-    showToast('¡Nueva paleta generada!');
+
+    const lockedCount = palette.filter((color) => color.locked).length;
+    showToast(lockedCount === 0
+        ? '¡Nueva paleta generada!'
+        : `¡Nueva paleta generada! (${lockedCount} bloqueado${lockedCount === 1 ? '' : 's'})`);
+});
+
+// Delegación de eventos: un solo listener en la grilla atiende los clics de
+// todas las tarjetas, incluso las que se crean después. closest() sube desde
+// el elemento clickeado hasta encontrar el botón con data-action.
+paletteGrid.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-action]');
+    if (button === null) {
+        return;
+    }
+
+    const index = Number(button.dataset.index);
+
+    if (button.dataset.action === 'copy') {
+        copyColor(index);
+    } else if (button.dataset.action === 'lock') {
+        toggleLock(index, button);
+    }
 });
 
 sizeSelect.addEventListener('change', (event) => {
@@ -198,6 +283,6 @@ document.addEventListener('keydown', (event) => {
 });
 
 /* --------------------------------------------------------------------------
-   7. Inicio
+   8. Inicio
    -------------------------------------------------------------------------- */
 generatePalette();
