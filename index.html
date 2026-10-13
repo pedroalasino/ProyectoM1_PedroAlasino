@@ -34,47 +34,18 @@
                 </select>
             </div>
 
-            <div class="controls__group">
-                <label for="color-format" class="controls__label">Formato del código</label>
-                <select id="color-format" name="color-format" class="controls__select">
-                    <option value="hex" selected>HEX</option>
-                    <option value="hsl">HSL</option>
-                    <option value="rgba">RGBA</option>
-                </select>
-            </div>
-
-            <div class="controls__actions">
-                <button type="button" id="save-btn" class="btn btn--secondary">
-                    Guardar paleta
-                </button>
-                <button type="button" id="generate-btn" class="btn btn--primary">
-                    Generar paleta
-                </button>
-            </div>
+            <button type="button" id="generate-btn" class="btn btn--primary">
+                Generar paleta
+            </button>
         </section>
 
         <!-- Paleta generada: JavaScript inserta aquí las tarjetas de color -->
         <section class="palette" aria-labelledby="palette-title">
             <h2 id="palette-title" class="palette__title">Tu paleta</h2>
-            <p class="palette__hint">
-                Hacé clic en un color para copiar su código, usá el candado para conservarlo al regenerar
-                o presioná la <kbd>barra espaciadora</kbd> para generar una paleta nueva.
-            </p>
+            <p class="palette__hint">Cada tarjeta muestra el código HEX y HSL del color.</p>
 
             <ul id="palette-grid" class="palette__grid">
                 <!-- Las tarjetas (<li class="color-card">) se generan dinámicamente desde script.js -->
-            </ul>
-        </section>
-
-        <!-- Paletas favoritas guardadas en localStorage -->
-        <section class="saved" aria-labelledby="saved-title">
-            <h2 id="saved-title" class="saved__title">Paletas guardadas</h2>
-            <p id="saved-empty" class="saved__empty">
-                Todavía no guardaste ninguna paleta. Usá «Guardar paleta» para tenerla siempre a mano.
-            </p>
-
-            <ul id="saved-list" class="saved__list">
-                <!-- Las paletas guardadas se generan dinámicamente desde script.js -->
             </ul>
         </section>
 

@@ -75,7 +75,7 @@ Guíame paso a paso (módulo por módulo), explicando las decisiones técnicas s
 clase y pidiendo mi confirmación antes de avanzar al siguiente módulo.
 ```
 
-**Resultado:** la IA armó la estructura de archivos (`index.html`, `style.css`, `script.js`, `evidencias/`) y el HTML semántico. Explicó cada decisión y pidió confirmación. Propuso sumar un selector de formato HEX/HSL/RGBA.
+**Resultado:** la IA armó la estructura de archivos (`index.html`, `style.css`, `script.js`, `evidencias/`) y el HTML semántico. Explicó cada decisión y pidió confirmación.
 
 ---
 
@@ -85,7 +85,7 @@ clase y pidiendo mi confirmación antes de avanzar al siguiente módulo.
 Pedro Alasino, hacé como está explicado en clase
 ```
 
-**Resultado:** inicializó el repositorio Git en la rama `main` e hizo el primer commit (`feat: agrega estructura HTML semántica y archivos base`). Después desarrolló el Paso 2 (CSS): variables en `:root`, reset de box model, Flexbox para los controles, Grid para la paleta, foco visible, contraste WCAG y animaciones con `prefers-reduced-motion`.
+**Resultado:** inicializó el repositorio Git en la rama `main` e hizo el primer commit (`feat: agrega estructura HTML semántica y archivos base`). Después desarrolló el Paso 2 (CSS): variables en `:root`, reset de box model, Flexbox para los controles, Grid para la paleta, foco visible y contraste WCAG.
 
 ---
 
@@ -95,27 +95,24 @@ Pedro Alasino, hacé como está explicado en clase
 Vos terminalo, hacelo completo
 ```
 
-**Resultado:**
-- Completó el JavaScript en commits atómicos:
-  - generación de colores y conversión de formatos;
-  - render de tarjetas y toast;
-  - copiar al portapapeles y bloqueo;
-  - persistencia en `localStorage` y paletas guardadas.
-- Verificó cada parte:
-  - chequeo de sintaxis con `node --check`;
-  - búsqueda de `var`, `==` y estilos inline;
-  - prueba automatizada en Chrome: bloquear, regenerar, cambiar tamaño, guardar, recargar la página, cargar, eliminar y copiar.
-- Generó las capturas de `evidencias/`.
+**Resultado:** la IA completó el JavaScript (generación de colores, tarjetas y toast) y agregó funcionalidades extra (bloqueo, copiar al portapapeles y paletas guardadas en `localStorage`). Lo probó en el navegador y generó las capturas.
 
-### Iteración detectada en la revisión
+---
 
-Al revisar las capturas apareció un bug visual: los códigos HSL largos se cortaban en medio de un número (`hsl(324, 4` / `5%, 52%)`). La causa era `word-break: break-all`. Se reemplazó por `overflow-wrap: break-word`, que solo corta en los espacios, y se registró como un commit aparte: `fix: evita que los códigos HSL y RGBA se corten en medio de un número`.
+## Prompt 4 · Ajustar al alcance pedido
+
+```text
+El README: quitar los emoticones y las tablas, hacerlo corto y no poner funcionalidades extras.
+Y quitar las funcionalidades extras no requeridas.
+```
+
+**Resultado:** se simplificó el README y se sacaron de la app el bloqueo, el copiado, las paletas guardadas, el selector de formato y el atajo de teclado. La app quedó con el alcance del MVP: botón "Generar paleta", selector de 6, 8 o 9 colores, códigos HEX y HSL visibles y toast.
 
 ---
 
 ## Aprendizajes sobre el uso de la IA
 
-1. **La estructura del prompt importa.** Las restricciones explícitas ("sin frameworks", "sin fetch") se respetaron en todo el proyecto sin tener que repetirlas.
+1. **La estructura del prompt importa.** Las restricciones explícitas ("sin frameworks", "sin fetch") se respetaron sin tener que repetirlas.
 2. **Pedir explicaciones y no solo código** convirtió a la IA en un tutor. Cada paso vino con el *por qué*, conectado con lo visto en clase.
 3. **Siempre hay que verificar.** El código compilaba y "funcionaba", pero hubo un detalle visual que solo se vio al mirar el resultado en el navegador.
-4. **Los commits atómicos hacen visible el proceso.** El historial de Git muestra cómo creció la app, funcionalidad por funcionalidad.
+4. **Hay que controlar el alcance.** La IA tiende a agregar más de lo pedido; conviene revisar que el resultado se ajuste a la consigna.
