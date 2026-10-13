@@ -290,7 +290,7 @@ body {
     font-family: var(--font-mono);
     font-size: 0.875rem;
     font-weight: 600;
-    word-break: break-all;       /* los códigos HSL/RGBA largos no desbordan la tarjeta */
+    overflow-wrap: break-word;   /* los códigos HSL/RGBA largos bajan de línea en los espacios, sin cortar números */
 }
 
 .color-card__lock {
@@ -398,7 +398,9 @@ body {
     position: fixed;
     bottom: var(--space-lg);
     left: 50%;
+    max-width: calc(100% - 2 * var(--space-md));   /* en pantallas chicas no toca los bordes */
     padding: var(--space-sm) var(--space-md);
+    text-align: center;
     color: var(--color-white);
     background-color: var(--color-gray-900);
     border-radius: var(--radius-sm);
