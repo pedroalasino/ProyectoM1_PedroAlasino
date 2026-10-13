@@ -1,4 +1,354 @@
 /* ==========================================================================
    Generador de Paletas · Colorfly Studio
-   Hoja de estilos principal (se completa en el Paso 2)
+   Hoja de estilos principal
    ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Variables globales (:root)
+   Centralizan la paleta de la app: cambiar un valor acá lo cambia en todo el sitio.
+   -------------------------------------------------------------------------- */
+:root {
+    /* Colores de marca */
+    --color-primary: #4c1d95;        /* violeta oscuro: contraste 10:1 con blanco */
+    --color-primary-hover: #3b0f7a;
+    --color-secondary: #f59e0b;      /* ámbar: se usa para el anillo de foco */
+
+    /* Escala de grises */
+    --color-white: #ffffff;
+    --color-gray-100: #f5f7fa;       /* fondo de la página */
+    --color-gray-300: #cbd2d9;       /* bordes */
+    --color-gray-600: #52606d;       /* texto secundario: 6:1 sobre gray-100 */
+    --color-gray-900: #1f2933;       /* texto principal: 14:1 sobre gray-100 */
+
+    /* Tipografía (fuentes del sistema: sin descargas externas) */
+    --font-base: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+
+    /* Espaciados basados en rem (1rem = tamaño de fuente raíz, 16px por defecto) */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 2rem;
+    --space-xl: 3rem;
+
+    /* Bordes, sombras y transiciones */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.75rem;
+    --shadow-sm: 0 1px 3px rgba(31, 41, 51, 0.12);
+    --shadow-md: 0 6px 16px rgba(31, 41, 51, 0.16);
+    --transition-fast: 150ms ease;
+    --transition-base: 300ms ease;
+}
+
+/* --------------------------------------------------------------------------
+   2. Reset global y Box Model
+   border-box: el ancho declarado INCLUYE padding y borde, así los tamaños son predecibles.
+   -------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;               /* Flexbox en columna: el footer queda siempre abajo */
+    flex-direction: column;
+    font-family: var(--font-base);
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--color-gray-900);
+    background-color: var(--color-gray-100);
+}
+
+/* Foco visible y bien contrastado en TODOS los elementos interactivos (WCAG 2.4.7).
+   :focus-visible lo muestra al navegar con teclado, sin molestar al hacer clic con mouse. */
+:focus-visible {
+    outline: 3px solid var(--color-secondary);
+    outline-offset: 3px;
+}
+
+/* Utilidad: oculta un elemento visualmente pero lo deja disponible para lectores de pantalla */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   3. Encabezado y pie
+   -------------------------------------------------------------------------- */
+.site-header {
+    padding: var(--space-lg) var(--space-md);
+    text-align: center;
+    color: var(--color-white);
+    background-color: var(--color-primary);
+}
+
+.site-header__title {
+    font-size: 2.25rem;
+    letter-spacing: -0.02em;
+}
+
+.site-header__subtitle {
+    margin-top: var(--space-xs);
+    font-size: 1.125rem;
+    opacity: 0.9;
+}
+
+.site-footer {
+    padding: var(--space-md);
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--color-gray-600);
+    border-top: 1px solid var(--color-gray-300);
+}
+
+/* --------------------------------------------------------------------------
+   4. Contenedor principal
+   -------------------------------------------------------------------------- */
+.main-content {
+    flex: 1;                     /* ocupa el espacio libre y empuja el footer hacia abajo */
+    width: 100%;
+    max-width: 75rem;
+    margin: 0 auto;
+    padding: var(--space-lg) var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+/* --------------------------------------------------------------------------
+   5. Controles (Flexbox)
+   -------------------------------------------------------------------------- */
+.controls {
+    display: flex;
+    flex-wrap: wrap;             /* si no entran en una fila, bajan a la siguiente */
+    align-items: flex-end;       /* alinea selects y botón por su borde inferior */
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    background-color: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.controls__title {
+    flex-basis: 100%;            /* el título ocupa toda la fila */
+    font-size: 1.25rem;
+}
+
+.controls__group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.controls__label {
+    font-weight: 600;
+    font-size: 0.9375rem;
+}
+
+.controls__select {
+    min-width: 10rem;
+    padding: 0.6em 0.8em;        /* em: escala junto con el tamaño de fuente del control */
+    font: inherit;               /* los controles de formulario no heredan la fuente por defecto */
+    color: var(--color-gray-900);
+    background-color: var(--color-white);
+    border: 2px solid var(--color-gray-300);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: border-color var(--transition-fast);
+}
+
+.controls__select:hover {
+    border-color: var(--color-primary);
+}
+
+/* --------------------------------------------------------------------------
+   6. Botones
+   -------------------------------------------------------------------------- */
+.btn {
+    padding: 0.75em 1.5em;
+    font: inherit;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn--primary {
+    margin-left: auto;           /* empuja el botón al extremo derecho de la fila */
+    color: var(--color-white);
+    background-color: var(--color-primary);
+}
+
+.btn--primary:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.btn:active {
+    transform: scale(0.97);      /* microanimación de "presionado" */
+}
+
+/* --------------------------------------------------------------------------
+   7. Paleta (CSS Grid)
+   -------------------------------------------------------------------------- */
+.palette__title {
+    font-size: 1.25rem;
+}
+
+.palette__hint {
+    margin-top: var(--space-xs);
+    color: var(--color-gray-600);
+}
+
+.palette__grid {
+    list-style: none;
+    margin-top: var(--space-md);
+    display: grid;
+    /* auto-fill + minmax: crea tantas columnas de mínimo 10rem como entren,
+       y reparte el sobrante en partes iguales (1fr). No hacen falta media queries. */
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: var(--space-md);
+}
+
+/* --------------------------------------------------------------------------
+   8. Tarjeta de color (generada desde JavaScript)
+   Estructura: li.color-card > button.color-card__swatch + div.color-card__info
+   -------------------------------------------------------------------------- */
+.color-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: var(--color-white);
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+    animation: card-appear var(--transition-base) both;
+}
+
+.color-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Muestra de color: es un <button> para poder copiar con clic o con teclado */
+.color-card__swatch {
+    height: 9rem;
+    border: none;
+    cursor: copy;
+    transition: background-color var(--transition-base);
+}
+
+.color-card__info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+}
+
+.color-card__code {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-weight: 600;
+    word-break: break-all;       /* los códigos HSL/RGBA largos no desbordan la tarjeta */
+}
+
+.color-card__lock {
+    flex-shrink: 0;
+    padding: 0.35em 0.6em;
+    font: inherit;
+    font-size: 0.8125rem;
+    color: var(--color-gray-600);
+    background-color: transparent;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.color-card__lock:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+/* Modificador BEM: tarjeta bloqueada (se agrega/quita con classList.toggle) */
+.color-card--locked {
+    border-color: var(--color-primary);
+}
+
+.color-card--locked .color-card__lock {
+    color: var(--color-white);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+/* --------------------------------------------------------------------------
+   9. Toast de microfeedback
+   Oculto por defecto; JavaScript agrega .toast--visible para mostrarlo.
+   -------------------------------------------------------------------------- */
+.toast {
+    position: fixed;
+    bottom: var(--space-lg);
+    left: 50%;
+    padding: var(--space-sm) var(--space-md);
+    color: var(--color-white);
+    background-color: var(--color-gray-900);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    opacity: 0;
+    pointer-events: none;        /* invisible = no bloquea clics */
+    transform: translate(-50%, 1rem);
+    transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+.toast--visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+/* --------------------------------------------------------------------------
+   10. Animaciones
+   -------------------------------------------------------------------------- */
+@keyframes card-appear {
+    from {
+        opacity: 0;
+        transform: translateY(0.5rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Accesibilidad: respeta a quien pidió reducir el movimiento en su sistema operativo */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   11. Ajuste para pantallas angostas
+   -------------------------------------------------------------------------- */
+@media (max-width: 40rem) {
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn--primary {
+        margin-left: 0;
+    }
+}
