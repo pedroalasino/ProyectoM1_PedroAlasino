@@ -4,8 +4,8 @@
 
 Aplicación web estática que genera paletas de colores aleatorias para acelerar las propuestas de branding de **Colorfly Studio**. Construida con HTML5 semántico, CSS3 y JavaScript vanilla, sin librerías ni frameworks y sin llamadas de red.
 
-🔗 **Demo en vivo:** https://TU-USUARIO.github.io/ProyectoM1_PedroAlasino/
-📦 **Repositorio:** https://github.com/TU-USUARIO/ProyectoM1_PedroAlasino
+🔗 **Demo en vivo:** https://pedroalasino.github.io/ProyectoM1_PedroAlasino/
+📦 **Repositorio:** https://github.com/pedroalasino/ProyectoM1_PedroAlasino
 
 ![Vista de la aplicación](evidencias/03-formato-hsl-y-paletas-guardadas.png)
 
@@ -68,7 +68,7 @@ Todo queda guardado en el navegador: si cerrás la pestaña y volvés, encontrá
 No requiere instalación, dependencias ni servidor.
 
 ```bash
-git clone https://github.com/TU-USUARIO/ProyectoM1_PedroAlasino.git
+git clone https://github.com/pedroalasino/ProyectoM1_PedroAlasino.git
 cd ProyectoM1_PedroAlasino
 ```
 
@@ -174,11 +174,11 @@ docs: agrega README, registro de uso de IA y evidencias
 1. Crear en GitHub un repositorio **público** y vacío llamado `ProyectoM1_PedroAlasino`.
 2. Conectar y subir:
    ```bash
-   git remote add origin https://github.com/TU-USUARIO/ProyectoM1_PedroAlasino.git
+   git remote add origin https://github.com/pedroalasino/ProyectoM1_PedroAlasino.git
    git push -u origin main
    ```
 3. En GitHub: **Settings → Pages → Source: Deploy from a branch → Branch: `main` / `(root)` → Save**.
-4. Esperar uno o dos minutos y abrir `https://TU-USUARIO.github.io/ProyectoM1_PedroAlasino/`.
+4. Esperar uno o dos minutos y abrir `https://pedroalasino.github.io/ProyectoM1_PedroAlasino/`.
 
 Todas las rutas son **relativas** (`style.css`, `script.js`) y los nombres de archivo están en minúsculas. Esto importa porque GitHub Pages distingue mayúsculas de minúsculas, aunque Windows no.
 
