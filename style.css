@@ -208,6 +208,15 @@ body {
     color: var(--color-gray-600);
 }
 
+.palette__hint kbd {
+    padding: 0.1em 0.4em;
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-sm);
+}
+
 .palette__grid {
     list-style: none;
     margin-top: var(--space-md);
@@ -231,6 +240,10 @@ body {
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+/* Modificador: solo las tarjetas recién generadas se animan al aparecer */
+.color-card--entering {
     animation: card-appear var(--transition-base) both;
 }
 

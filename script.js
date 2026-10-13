@@ -80,3 +80,124 @@ function formatColor(color, format) {
 
     return `#${toHexPair(r)}${toHexPair(g)}${toHexPair(b)}`.toUpperCase();
 }
+
+/* --------------------------------------------------------------------------
+   3. Referencias al DOM y estado de la aplicación
+   -------------------------------------------------------------------------- */
+const paletteGrid = document.getElementById('palette-grid');
+const sizeSelect = document.getElementById('palette-size');
+const formatSelect = document.getElementById('color-format');
+const generateBtn = document.getElementById('generate-btn');
+const toast = document.getElementById('toast');
+
+const TOAST_DURATION_MS = 2000;
+
+// La paleta actual: un array de objetos { h, s, l, locked }.
+// Es la "fuente de verdad": el DOM siempre se dibuja a partir de este array.
+let palette = [];
+let toastTimeoutId = null;
+
+/* --------------------------------------------------------------------------
+   4. Microfeedback (toast)
+   -------------------------------------------------------------------------- */
+
+/**
+ * Muestra un mensaje temporal. Como el contenedor tiene aria-live="polite",
+ * los lectores de pantalla también lo anuncian.
+ */
+function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add('toast--visible');
+
+    // Si llega un mensaje nuevo antes de que se oculte el anterior, reiniciamos el temporizador
+    clearTimeout(toastTimeoutId);
+    toastTimeoutId = setTimeout(() => {
+        toast.classList.remove('toast--visible');
+    }, TOAST_DURATION_MS);
+}
+
+/* --------------------------------------------------------------------------
+   5. Renderizado de la paleta
+   -------------------------------------------------------------------------- */
+
+/**
+ * Crea el <li> de una tarjeta de color. Se usa createElement + textContent
+ * (y no innerHTML) para no interpretar nunca texto como HTML.
+ */
+function createColorCard(color, index, animate) {
+    const code = formatColor(color, formatSelect.value);
+
+    const card = document.createElement('li');
+    card.classList.add('color-card');
+    card.classList.toggle('color-card--entering', animate);
+
+    // La muestra es un <button>: se puede activar con mouse, Enter o Espacio
+    const swatch = document.createElement('button');
+    swatch.type = 'button';
+    swatch.classList.add('color-card__swatch');
+    swatch.dataset.index = index;
+    swatch.setAttribute('aria-label', `Copiar color ${code}`);
+    // Único estilo aplicado desde JS: el color es dinámico y no puede definirse en style.css
+    swatch.style.backgroundColor = formatColor(color, 'hex');
+
+    const info = document.createElement('div');
+    info.classList.add('color-card__info');
+
+    const codeText = document.createElement('code');
+    codeText.classList.add('color-card__code');
+    codeText.textContent = code;
+
+    info.append(codeText);
+    card.append(swatch, info);
+    return card;
+}
+
+/**
+ * Dibuja toda la paleta. Con animate = true las tarjetas entran con animación.
+ */
+function renderPalette(animate) {
+    const cards = palette.map((color, index) => createColorCard(color, index, animate));
+    paletteGrid.replaceChildren(...cards);
+}
+
+/**
+ * Genera una paleta nueva del tamaño elegido en el <select>.
+ */
+function generatePalette() {
+    const size = Number(sizeSelect.value);
+    palette = Array.from({ length: size }, () => generateRandomColor());
+    renderPalette(true);
+}
+
+/* --------------------------------------------------------------------------
+   6. Eventos
+   -------------------------------------------------------------------------- */
+generateBtn.addEventListener('click', () => {
+    generatePalette();
+    showToast('¡Nueva paleta generada!');
+});
+
+sizeSelect.addEventListener('change', (event) => {
+    generatePalette();
+    showToast(`Paleta de ${event.target.value} colores generada`);
+});
+
+// Cambiar el formato no cambia los colores: solo vuelve a dibujar los códigos
+formatSelect.addEventListener('change', (event) => {
+    renderPalette(false);
+    showToast(`Mostrando códigos en ${event.target.value.toUpperCase()}`);
+});
+
+// Atajo: barra espaciadora para generar, solo si el foco no está en un control
+// (en un botón o select, Espacio ya tiene su propia función)
+document.addEventListener('keydown', (event) => {
+    if (event.code === 'Space' && event.target === document.body) {
+        event.preventDefault();   // evita que la página haga scroll
+        generateBtn.click();
+    }
+});
+
+/* --------------------------------------------------------------------------
+   7. Inicio
+   -------------------------------------------------------------------------- */
+generatePalette();
